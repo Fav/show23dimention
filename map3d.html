@@ -1,0 +1,71 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script src="jquery-1.4.2.js" type="text/javascript"></script>
+    <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=6cDGLsuKWYAlc1GGq7bwF5nG"></script>
+    <title>三维地图</title>
+</head>
+<body>
+	<div id="My3dMap" class="My3DMapClass">
+	    <button onclick="model3D()" style="background:green;position:relative;right:0;top:0">三维浏览</button> 
+	    <input id="usepanorama" alt="panorama" type="checkbox" checked="">放大切换到全景</input>
+	   <object id="TE" classid="clsid:3a4f9192-65a8-11d5-85c1-0001023952c1" style="width:100%;height:100%" ></object>
+	   <object id="SGWorld65" classid="CLSID:3a4f9197-65a8-11d5-85c1-0001023952c1" style="visibility:hidden;height:0"></object>
+	</div>
+</body>
+</html>
+<script type="text/javascript">
+var SGWorld65 ;
+var heightEx= 1042.564;
+$(function () {
+	function getPageWidth() {var width = window.innerWidth; if (width == null) { if (document.documentElement && document.documentElement.clientWidth) width = document.documentElement.clientWidth; else width = document.body.clientWidth; } return width; }
+    function getPageHeight(){var height = window.innerHeight; if (height == null) { if (document.documentElement && document.documentElement.clientHeight) height = document.documentElement.clientHeight; else height = document.body.clientHeight; } return height; }
+
+    var flyPath = "H:\\shanxi-result\\shanxi6.fly"
+    SGWorld65 = document.getElementById('SGWorld65');
+    SGWorld65.Project.Open(flyPath);
+
+    SGWorld65.AttachEvent("OnLButtonUp", parent.Set2DMap);
+    SGWorld65.AttachEvent("OnMouseWheel", changemap);
+})
+function model3D(){
+    SGWorld65.Command.Execute(1052, 0);
+}
+function PositionAttach(rect,numx,numy){
+    var dstance = SGWorld65.CoordServices.GetDistance(rect.leftbottomx, rect.leftbottomy, rect.righttopx,rect.righttopy);
+    var center = { 'x': (rect.leftbottomx+rect.righttopx)/2-numx, 'y': (rect.leftbottomy+rect.righttopy)/2-numy};
+    var height = dstance / 2.0 * 2.006;
+    //  SGWorld65.ICommand65.Execute(1053, 0);
+    SGWorld65.Command.Execute(1053, 0);
+    var postion = SGWorld65.Creator.CreatePosition(center.x, center.y, 0);
+    postion.Altitude = height;
+
+    SGWorld65.Navigate.SetPosition(postion);
+}
+
+function getRect(){
+    var rect = SGWorld65.Window.Rect;
+    var positionMin = SGWorld65.Window.PixelToWorld(0, rect.Height - 1, -1).Position;
+    var positionMax = SGWorld65.Window.PixelToWorld(rect.Width - 1, 0, -1).Position;
+    var newRect = {"leftbottomx":positionMin.X,"leftbottomy":positionMin.Y,"righttopx":positionMax.X, "righttopy":positionMax.Y};
+    return newRect;
+}
+function changemap (e) {
+	var currentPos = SGWorld65.Navigate.GetPosition(4 /*AltitudeTypeCode.ATC_TERRAIN_ABSOLUTE*/);
+	var height = currentPos.Altitude - heightEx;
+	if (height < 50) {
+		//$("#My3dMap").hide();
+		if(!$("#usepanorama").attr('checked')){
+			return;
+		}
+		parent.mappanoramaActive();
+		parent.setpanorama();
+	}else{
+		parent.Set2DMap();
+	}
+}
+
+</script>
+

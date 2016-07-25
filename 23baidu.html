@@ -1,0 +1,187 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>2d-3d-百度地图</title>
+    <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=6cDGLsuKWYAlc1GGq7bwF5nG"></script>
+    <script type="text/javascript" src="http://api.map.baidu.com/library/AreaRestriction/1.2/src/AreaRestriction_min.js"></script>
+    <script src="jquery-1.4.2.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        var map2d;
+        var active2d = false;
+        var SGWorld65 ;
+        $(function () {
+            function getPageWidth() {var width = window.innerWidth; if (width == null) { if (document.documentElement && document.documentElement.clientWidth) width = document.documentElement.clientWidth; else width = document.body.clientWidth; } return width; }
+            function getPageHeight(){var height = window.innerHeight; if (height == null) { if (document.documentElement && document.documentElement.clientHeight) height = document.documentElement.clientHeight; else height = document.body.clientHeight; } return height; }
+            window.moveTo(0, 0);
+            window.resizeTo(screen.availWidth, screen.availHeight);
+            window.outerWidth = screen.availWidth;
+            window.outerHeight = screen.availHeight;
+            $("#My2dMap").css("height", getPageHeight() - 20);
+            $("#My2dMap").css("width", (getPageWidth() / 2) - 30);
+            $("#My3dMap").css("width", (getPageWidth() / 2) - 30);
+            $("#My3dMap").css("height", getPageHeight() - 40);
+            var temp = $("#My2dMap").offset();
+            $("#tool2d").css({"left":temp.left+$("#My2dMap").width()/2-40,"top":temp.top+$("#My2dMap").height()/2-40});
+
+        // 百度地图API功能
+            map2d = new BMap.Map("My2dMap",{mapType: BMAP_HYBRID_MAP});    // 创建Map实例
+            map2d.centerAndZoom(new BMap.Point(112.5808861,37.86770889), 17);  // 初始化地图,设置中心点坐标和地图级别
+            map2d.addControl(new BMap.MapTypeControl());   //添加地图类型控件
+            //map2d.setCurrentCity("北京");          // 设置地图显示的城市 此项是必须设置的
+            map2d.enableScrollWheelZoom(true);     //开启鼠标滚轮缩放
+
+            var top_left_navigation = new BMap.NavigationControl();  //左上角，添加默认缩放平移控件
+            map2d.addControl(top_left_navigation);  
+
+			/*
+            //添加点信息   
+            var data_info = [[113.308656,40.091944,"永泰门"],
+                             [113.30698,40.092616,"善化寺"],
+                             [113.312945,40.094873,"府文庙"]
+                            ];
+            var opts = {
+                        width : 250,     // 信息窗口宽度
+                        height: 80,     // 信息窗口高度
+                        title : "信息窗口" , // 信息窗口标题
+                        enableMessage:true//设置允许信息窗发送短息
+                       };
+            for(var i=0;i<data_info.length;i++){
+                var marker = new BMap.Marker(new BMap.Point(data_info[i][0],data_info[i][1]));  // 创建标注
+                var content = data_info[i][2];
+                map2d.addOverlay(marker);               // 将标注添加到地图中
+                addClickHandler(content,marker);
+            }
+			*/
+            function addClickHandler(content,marker){
+                marker.addEventListener("click",function(e){
+                    openInfo(content,e)}
+                );
+            }
+            function openInfo(content,e){
+                var p = e.target;
+                var point = new BMap.Point(p.getPosition().lng, p.getPosition().lat);
+                var infoWindow = new BMap.InfoWindow(content,opts);  // 创建信息窗口对象 
+                map2d.openInfoWindow(infoWindow,point); //开启信息窗口
+            }
+
+
+
+            init();
+
+            //注册地图的移动停止事件 
+            map2d.addEventListener("moveend", move2d);
+            map2d.addEventListener("zoomend", move2d);
+            map2d.addEventListener("mouseover",mouseover2d);//移入
+            map2d.addEventListener("mouseout", mouseout2d); //移除           
+        })
+
+        function init() {
+            try {
+                //var flyPath = "SkylineGlobe.tbp@tglobe.skylinesoft.com";
+                // var flyPath = "H:\\city\\Output\\city.3dmp.fly";
+                //var flyPath = "H:\\Datong-3d\\Datong.3dmp.fly";
+                var flyPath = "H:\\shanxi-result\\shanxi6.fly"
+                SGWorld65 = document.getElementById('SGWorld65');
+                SGWorld65.Project.Open(flyPath);
+
+               // SGWorld65.AttachEvent("OnLoadFinished", Getposition);
+                //SGWorld65.AttachEvent("OnLoadFinished", OnLoadFinish);
+                SGWorld65.AttachEvent("OnLButtonUp", Set2DMap);
+               // SGWorld65.AttachEvent("OnLButtonUp", Set2DMap);
+               SGWorld65.AttachEvent("OnMouseWheel", Set2DMap);
+               // SGWorld65.AttachEvent("OnFrame", Set2DMap);
+            }
+            catch (e) {
+                alert("Error:" + e.Description);
+            }
+        }
+        var numx = 0.0132;
+        var numy = 0.00655;
+        function Set2DMap() {
+            var rect = SGWorld65.Window.Rect;
+            var positionMin = SGWorld65.Window.PixelToWorld(0, rect.Height - 1, -1).Position;
+            var positionMax = SGWorld65.Window.PixelToWorld(rect.Width - 1, 0, -1).Position;
+            //alert(positionMin.X + ":" + positionMin.Y + ":" + positionMax.X + ":" + positionMax.Y);
+
+            // var b = new BMap.Bounds(new BMap.Point(positionMin.X,positionMin.Y),new BMap.Point(positionMax.X,positionMax.Y));
+
+            map2d.setViewport([new BMap.Point(positionMin.X+numx,positionMin.Y+numy),new BMap.Point(positionMax.X+numx,positionMax.Y+numy)]);
+        };
+
+        function move2d () {
+            if (!active2d) {
+                return ;
+            };
+            OnLoadFinish();
+        }
+        function OnLoadFinish() {
+            var bs = map2d.getBounds();       //获取可视区域
+            var bssw = bs.getSouthWest();   //可视区域左下角 
+            var bsne = bs.getNorthEast();   //可视区域右上角 
+            //alert("当前地图可视范围是：" + bssw.getLng() + "," + bssw.getLat() + "到" + bsne.getLng() + "," + bsne.getLat()); 
+
+            var dstance = SGWorld65.CoordServices.GetDistance(bssw.lng, bssw.lat, bsne.lng,bsne.lat);
+            var center = { 'x': (bssw.lng+bsne.lng)/2-numx, 'y': (bssw.lat+bsne.lat)/2-numy};
+            var height = dstance / 2.0 * 2.006;
+           // alert(height);
+            PositionAttach(center, height);
+        }
+        function PositionAttach(center, height) {
+            //  SGWorld65.ICommand65.Execute(1053, 0);
+            SGWorld65.Command.Execute(1053, 0);
+            var postion = SGWorld65.Creator.CreatePosition(center.x, center.y, 0);
+            postion.Altitude = height;
+            // postion.Yaw = 357.8;
+            // postion.Pitch = 270;
+            // postion.Roll = 1;
+
+            SGWorld65.Navigate.SetPosition(postion);
+            //SGWorld65.AttachEvent("OnLButtonDown", Set2DMap);
+        }
+        function mouseover2d () {
+            active2d = true;
+            //console.log(active2d);
+        }
+        function mouseout2d () {
+            active2d = false;
+            //console.log(active2d);
+        }
+        function model3D(){
+            SGWorld65.Command.Execute(1052, 0);
+        }
+
+    </script>
+    <style type="text/css">
+        .My2dMapClass
+        {
+            float:left;
+            }
+        .My3DMapClass
+        {
+            border:1px solid red;
+            float:left;
+            }
+        #tool2d{
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            z-index: 999;
+        }
+        #tool2d img{
+            width: 40px;
+            height: 40px;
+        }
+    </style>
+</head>
+<body onunload="" oncontextmenu="return false;">
+<div id="My2dMap" class="My2dMapClass" style="border:1px solid blue;"></div>
+<div id="tool2d">
+    <img src="center.png" alt="" />
+</div>
+<div id="My3dMap" class="My3DMapClass">
+    <button onclick="model3D()" style="background:green;position:relative;right:0;top:0">三维浏览</button> 
+   <object id="TE" classid="clsid:3a4f9192-65a8-11d5-85c1-0001023952c1" style="width:100%;height:100%" ></object>
+   <object id="SGWorld65" classid="CLSID:3a4f9197-65a8-11d5-85c1-0001023952c1" style="visibility:hidden;height:0"></object>
+</div>
+</body>
+</html>
